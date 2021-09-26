@@ -3,6 +3,7 @@ import struct
 import numpy as np
 import matplotlib.pyplot as plt
 import collections
+import math
 
 def load_mnist(path='/home/van/Documents/MNIST-Bayes/data/', kind='train'):
     """Load MNIST data from `path`"""
@@ -35,7 +36,7 @@ def show_images_train(img):
  
     ax = ax.flatten()
     for i in range(10):
-        # img = images_train[labels_train == i][0].reshape(28, 28)
+        img = images_train[labels_train == i][0].reshape(28, 28)
         ax[i].imshow(img, cmap='Greys', interpolation='nearest')
 
     ax[0].set_xticks([])
@@ -43,7 +44,7 @@ def show_images_train(img):
     plt.tight_layout()
     plt.show()
 
-    return True
+   # return True
 
 #读取数据集
 images_train, labels_train = load_mnist('/home/van/Documents/MNIST-Bayes/data/', 'train')
@@ -53,55 +54,65 @@ images_test, labels_test = load_mnist('/home/van/Documents/MNIST-Bayes/data/', '
 images_train = np.where(images_train>0, 1, 0)
 images_test = np.where(images_test>0, 1, 0)
 
+#show_images_train(images_train)
 
 #计算先验概率
 numImages_train_l = []
 Py_l = []
 for i in range(10):
     numImages_train_l.append(images_train[labels_train == i].shape[0])
-    Py_l.append(numImages_train_l[i] / len(images_train))
+    Py_l.append(math.log(numImages_train_l[i] / len(images_train)))
 
 #计算类条件概率
 Pxy_1_l = []
-#Pxy_0_l = []
+Pxy_0_l = []
 for i in range(10):
     pxy_1_l = []
-    #pxy_0_l = []
+    pxy_0_l = []
     for j in range(784):
-        pxy_1_l.append((sum(images_train[labels_train == i][:,j]) + 1) / (numImages_train_l[i] + 2))
-        #pxy_0_l.append(1 - pxy_1_l[j])
+        middle = (sum(images_train[labels_train == i][:,j]) + 1) / (numImages_train_l[i] + 2)
+        pxy_1_l.append(math.log(middle))
+        pxy_0_l.append(math.log(1 - middle))
     Pxy_1_l.append(pxy_1_l)
-    #Pxy_0_l.append(pxy_0_l)
+    Pxy_0_l.append(pxy_0_l)
 
-# #计算分母
-# Px_1_l = []
-# Px_0_l = []
-# for j in range(784):
-#     px_1_l = []
-#     px_0_l = []
-#     for i in range(10):
-#         px_1_l.append(Pxy_1_l[i][j] * Py_l[i])
-#         px_0_l.append((1 - Pxy_1_l[i][j]) * Py_l[i])
-#     Px_1_l.append(sum(px_1_l))
-#     Px_0_l.append(sum(px_0_l))
-
-image = images_test[4,:]
-image = np.where(image>0, 1, 0)
-#show_images_train(image.reshape(28, 28))
-Pre_pro = []
+#单张图片检测
+# image = images_test[4,:]
+# image = np.where(image>0, 1, 0)
+# #show_images_train(image.reshape(28, 28))
+# Pre_pro = []
 # for i in range(10):
-for i in [4]:
-    pre_pro = 0
-    for j in range(784):
-        if image[j] == 1:
-          pre_pxy = Pxy_1_l[i][j]
-          #pre_px = Px_1_l[j]
-        else:
-          pre_pxy = 1 - Pxy_1_l[i][j]
-          #pre_px = Px_0_l[j]
-        pre_py = Py_l[i]
-        pre_pro = pre_pro + log(pre_pxy * pre_py)
-        #pre_pro = pre_pro * pre_pxy * pre_py * pre_px
-    Pre_pro.append(pre_pro)
+#     pre_pro = 0
+#     for j in range(784):
+#         if image[j] == 1:
+#           pre_pxy = Pxy_1_l[i][j]
+#         else:
+#           pre_pxy = Pxy_0_l[i][j]
+#         pre_py = Py_l[i]
+#         pre_pro = pre_pro + pre_pxy+  pre_py
+#     Pre_pro.append(pre_pro)
+# Max = max(Pre_pro)
+# index = Pre_pro.index(Max)
 
-222
+#####Test数据集检测
+num_true = 0
+images_test = np.where(images_test>0, 1, 0)
+for num in range(len(images_test)):
+    Pre_pro = []
+    image = images_test[num,:]
+    for i in range(10):
+        pre_pro = 0
+        for j in range(784):
+            if image[j] == 1:
+                pre_pxy = Pxy_1_l[i][j]
+            else:
+                pre_pxy = Pxy_0_l[i][j]
+            pre_py = Py_l[i]
+            pre_pro = pre_pro + pre_pxy+  pre_py
+        Pre_pro.append(pre_pro)
+    Max = max(Pre_pro)
+    index = Pre_pro.index(Max)
+    if labels_test[num] == index:
+      num_true = num_true + 1
+    
+print('Test accuracy is: ' , num_true / len(labels_test))
